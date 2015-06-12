@@ -10,7 +10,6 @@ def compare_file_names(x, y):
 
 class MySwitchFileCommand(sublime_plugin.WindowCommand):
     def run(self, extensions=[]):
-        print('my new command')
         if not self.window.active_view():
             return
 
