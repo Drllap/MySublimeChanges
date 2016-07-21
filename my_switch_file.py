@@ -1,12 +1,15 @@
-import sublime, sublime_plugin
+import sublime
+import sublime_plugin
 import os.path
 import platform
+
 
 def compare_file_names(x, y):
     if platform.system() == 'Windows' or platform.system() == 'Darwin':
         return x.lower() == y.lower()
     else:
         return x == y
+
 
 class MySwitchFileCommand(sublime_plugin.WindowCommand):
     def run(self, extensions=[]):
@@ -17,26 +20,61 @@ class MySwitchFileCommand(sublime_plugin.WindowCommand):
         if not fname:
             return
 
-        path = os.path.dirname(fname)
-        base, ext = os.path.splitext(fname)
+        pData = sublime.active_window().project_data()
+        if pData is not None:
+            file = ProjectSearch(pData, fname, extensions)
+        else:
+            file = DefaultSearch(fname, extensions)
 
-        start = 0
-        count = len(extensions)
+        if file is not None:
+            OpenFile(file)
 
-        if ext != "":
-            ext = ext[1:]
 
-            for i in range(0, len(extensions)):
-                if compare_file_names(extensions[i], ext):
-                    start = i + 1
-                    count -= 1
-                    break
+def SearchFolder(searchFolder, fname, extensions):
+    ext = ExtractSearchExtensions(extensions, fname)
+    base, _ = os.path.splitext(fname)
+    filename = os.path.basename(base)
 
-        for i in range(0, count):
-            idx = (start + i) % len(extensions)
+    for root, dirs, files in os.walk(searchFolder):
+        for e in ext:
+            newFile = root + "\\" + filename + "." + e
+            if os.path.exists(newFile):
+                return newFile
 
-            new_path = base + '.' + extensions[idx]
+    return None
 
-            if os.path.exists(new_path):
-                self.window.open_file(new_path)
-                break
+
+def ExtractSearchExtensions(extensions, fname):
+    base, ext = os.path.splitext(fname)
+    ext = ext[1:]
+    return [e for e in extensions if e != ext]
+
+
+def ProjectSearch(projectData, fname, extensions):
+    paths = [f["path"] for f in projectData["folders"]]
+    for p in paths:
+        match = SearchFolder(p, fname, extensions)
+        if match is not None:
+            return match
+
+    return None
+
+
+def DefaultSearch(fname, extensions):
+    base = os.path.dirname(fname)
+    return SearchFolder(base, fname, extensions)
+
+
+def OpenFile(fname):
+    windows = sublime.windows()
+    for w in windows:
+        view = w.find_open_file(fname)
+        if view is not None:
+            w.focus_view(view)
+            if w != sublime.active_window():
+                # Hack to get focus on other window
+                # https://github.com/SublimeTextIssues/Core/issues/444
+                w.run_command("focus_neighboring_group")
+                w.focus_view(view)
+
+    sublime.active_window().open_file(fname)
