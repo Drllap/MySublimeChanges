@@ -41,7 +41,7 @@ def SearchFolder(searchFolder, fname, extensions):
         if pfn is None:
             return None
 
-        projectPath = os.path.dirname()
+        projectPath = os.path.dirname(pfn)
         searchFolder = os.path.join(projectPath, searchFolder)
 
     for root, dirs, files in os.walk(searchFolder):
