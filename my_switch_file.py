@@ -35,6 +35,15 @@ def SearchFolder(searchFolder, fname, extensions):
     base, _ = os.path.splitext(fname)
     filename = os.path.basename(base)
 
+    if not os.path.isabs(searchFolder):
+        pfn = sublime.active_window().project_file_name()
+
+        if pfn is None:
+            return None
+
+        projectPath = os.path.dirname()
+        searchFolder = os.path.join(projectPath, searchFolder)
+
     for root, dirs, files in os.walk(searchFolder):
         for e in ext:
             newFile = root + "\\" + filename + "." + e
